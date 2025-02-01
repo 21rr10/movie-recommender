@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/app.py",
+      "use": "@vercel/python",
+      "config": {
+        "pythonVersion": "3.11",
+        "includeFiles": [
+          "templates/*",
+          "static/*",
+          "api/preprocessed.parquet",
+          "api/similarity.npz"
+        ],
+        "installCommand": "pip install --no-binary numpy,scikit-learn -r requirements.txt"
+      }
+    }
+  ],
+  "routes": [
+    {"src": "/static/(.*)", "dest": "/static/$1"},
+    {"src": "/(.*)", "dest": "api/app.py"}
+  ]
+}

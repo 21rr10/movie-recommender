@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="AI Movie Recommender">
+    <meta property="og:description" content="Discover similar movies using machine learning">
+    <title>Movie Recommendation System</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎬 Movie Recommender AI</h1>
+            <p class="tagline">Discover similar movies based on your favorites</p>
+        </header>
+
+        <div class="search-section">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="movieInput" 
+                    placeholder="Enter a movie title (e.g., 'Batman Begins')"
+                    aria-label="Movie title input"
+                    list="movieSuggestions"
+                    autocomplete="off"
+                    aria-autocomplete="list"
+                    onkeyup="handleKeyPress(event)"
+                >
+                <datalist id="movieSuggestions"></datalist>
+                <button 
+                    class="recommend-btn"
+                    onclick="getRecommendations()"
+                    aria-label="Get recommendations"
+                >
+                    Find Similar Movies
+                </button>
+            </div>
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <span>Analyzing preferences...</span>
+            </div>
+            
+            <div class="search-history">
+                <p>Recent searches:</p>
+                <div id="historyList"></div>
+            </div>
+        </div>
+
+        <div id="results" class="results-container"></div>
+    </div>
+
+    <script>
+    let timeoutId;
+
+    async function getRecommendations() {
+        const movie = document.getElementById('movieInput').value.trim();
+        const resultsDiv = document.getElementById('results');
+        const loading = document.getElementById('loading');
+        
+        if (!movie) {
+            showError('Please enter a movie title');
+            return;
+        }
+
+        try {
+            loading.classList.remove('hidden');
+            resultsDiv.innerHTML = '';
+            
+            const response = await fetch('/recommend', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({movie: movie})
+            });
+
+            const data = await response.json();
+            
+            if (data.error) {
+                showError(data.error);
+            } else {
+                addToHistory(movie);
+                displayResults(data.recommendations);
+            }
+        } catch (error) {
+            showError('Failed to get recommendations. Please try again.');
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    function displayResults(recommendations) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `
+            <h2 class="results-title">Recommended Movies</h2>
+            <ul class="results-list">
+                ${recommendations.map(m => `
+                    <li class="movie-item">
+                        <span class="movie-title">${m}</span>
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+    }
+
+    function showError(message) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `<p class="error">${message}</p>`;
+    }
+
+    async function loadMovieSuggestions() {
+        try {
+            const response = await fetch('/movies');
+            const movies = await response.json();
+            const datalist = document.getElementById('movieSuggestions');
+            datalist.innerHTML = movies.map(m => `<option value="${m}">`).join('');
+        } catch (error) {
+            console.error('Failed to load suggestions:', error);
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') getRecommendations();
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(loadMovieSuggestions, 300);
+    }
+
+    function addToHistory(movie) {
+        const history = JSON.parse(localStorage.getItem('movieHistory') || '[]');
+        if (!history.includes(movie.toLowerCase())) {
+            history.unshift(movie);
+            localStorage.setItem('movieHistory', JSON.stringify(history.slice(0, 5)));
+        }
+        updateHistoryDisplay();
+    }
+
+    function updateHistoryDisplay() {
+        const history = JSON.parse(localStorage.getItem('movieHistory') || '[]');
+        document.getElementById('historyList').innerHTML = history
+            .map(m => `<button class="history-item" onclick="setMovie('${m}')">${m}</button>`)
+            .join('');
+    }
+
+    function setMovie(title) {
+        document.getElementById('movieInput').value = title;
+        getRecommendations();
+    }
+
+    window.onload = () => {
+        loadMovieSuggestions();
+        updateHistoryDisplay();
+    };
+    </script>
+</body>
+</html>
