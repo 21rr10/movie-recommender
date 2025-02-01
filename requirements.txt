@@ -4,3 +4,4 @@ scikit-learn==1.4.1.post1
 nltk==3.8.1
 pyarrow==15.0.2
 numpy==1.26.4
+gunicorn==20.1.0
