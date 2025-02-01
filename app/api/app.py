@@ -15,22 +15,22 @@ import warnings
 warnings.filterwarnings('ignore', category=pd.errors.SettingWithCopyWarning)
 warnings.filterwarnings('ignore', category=UserWarning)
 
-# Configure Flask with proper paths for Vercel
+# Configure Flask with proper paths
 app = Flask(
     __name__,
-    template_folder=os.path.join(os.path.dirname(__file__), '../templates'),
-    static_folder=os.path.join(os.path.dirname(__file__), '../static')
+    template_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates'),
+    static_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
 )
 CORS(app)
 
 def get_data_path(filename):
-    """Get absolute path to data files for Vercel"""
-    return os.path.join(os.path.dirname(__file__), 'data', filename)
+    """Get absolute path to data files"""
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', filename)
 
 def preprocess_data():
     try:
-        # Use absolute paths for Vercel file system
-        parquet_path = os.path.join(os.path.dirname(__file__), 'preprocessed.parquet')
+        # Use absolute paths for file system
+        parquet_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'preprocessed.parquet')
         
         if not os.path.exists(parquet_path):
             print("🚀 Processing raw data...")
@@ -98,7 +98,7 @@ print("\n🎬 Initializing Movie Recommender System")
 try:
     new_df, movies = preprocess_data()
     
-    similarity_path = os.path.join(os.path.dirname(__file__), 'similarity.npz')
+    similarity_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'similarity.npz')
     if not os.path.exists(similarity_path):
         print("⚙️ Creating similarity matrix...")
         cv = CountVectorizer(max_features=5000, stop_words='english')
@@ -106,7 +106,7 @@ try:
         similarity = cosine_similarity(vectors)
         
         # Precision conversion before saving
-        similarity = similarity.astype(np.float16)  # 👈 New line
+        similarity = similarity.astype(np.float16)
         np.savez_compressed(similarity_path, similarity)
         print("✅ Saved similarity matrix")
     else:
@@ -114,18 +114,11 @@ try:
         similarity = np.load(similarity_path)['arr_0']
         
         # Restore original precision
-        similarity = similarity.astype(np.float32)  # 👈 New line
+        similarity = similarity.astype(np.float32)
 
 except Exception as e:
     print(f"🔥 Critical initialization error: {str(e)}")
     sys.exit(1)
-
-
-
-# Vercel handler
-def vercel_handler(request):
-    with app.app_context():
-        return app.full_dispatch_request(request)
 
 # Flask routes
 @app.route('/')
